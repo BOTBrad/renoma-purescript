@@ -4,12 +4,15 @@ import Prelude
 
 import Control.Monad.Eff (Eff ())
 import Control.Monad.Eff.Class (liftEff)
+import Data.TypedArray (asFloat32Array)
 import Data.Maybe.Unsafe (fromJust)
 import Graphics.Canvas (Canvas (), getCanvasElementById)
-import Graphics.WebGL (runWebgl)
+import Graphics.WebGL (runWebgl, runWebglWithShaders)
 import Graphics.WebGL.Context (getWebglContext)
 import Graphics.WebGL.Methods
 import Graphics.WebGL.Types
+
+import Shaders
 
 type MyWebGLProgram a = forall eff. Eff (canvas :: Canvas | eff) a
 
@@ -24,9 +27,26 @@ getContext = do
 
 runProgram :: WebGLContext -> MyWebGLProgram Unit
 runProgram ctx = do
-  _ <- liftEff $ runWebgl wgl ctx
+  _ <- liftEff $ runWebglWithShaders wgl ctx vertexShaderString fragmentShaderString
   return unit
 
-wgl = do
-  clearColor 0.0 1.0 0.0 1.0
-  clear ColorBuffer
+wgl :: WebGLProgram -> { a_Position :: Attribute Vec4 } -> { } -> WebGL Unit
+wgl _ attr unif =
+  let
+    vertices = DataSource $ asFloat32Array [
+      0.0, 0.1,
+      -0.1, -0.1,
+      0.1, -0.1
+      ]
+  in
+    do
+      triBuf <- createBuffer
+      bindBuffer ArrayBuffer triBuf
+      bufferData ArrayBuffer vertices StaticDraw
+
+      vertexAttribPointer attr.a_Position 2 Float false 0 0
+      enableVertexAttribArray attr.a_Position
+
+      clearColor 0.0 0.0 0.0 1.0
+      clear ColorBuffer
+      drawArrays Triangles 0 3
