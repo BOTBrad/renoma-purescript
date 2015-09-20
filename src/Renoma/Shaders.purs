@@ -1,11 +1,12 @@
-module Shaders where
+module Renoma.Shaders where
 
 vertexShaderString :: String
 vertexShaderString = """
 attribute vec4 a_Position;
+uniform mat4 u_perspective;
 
 void main() {
-  gl_Position = a_Position;
+  gl_Position = u_perspective * a_Position;
 }
 """
 

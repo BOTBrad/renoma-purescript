@@ -12,7 +12,7 @@ import Graphics.WebGL.Context (getWebglContext)
 import Graphics.WebGL.Methods
 import Graphics.WebGL.Types
 
-import Shaders
+import Renoma.Shaders
 
 type MyWebGLProgram a = forall eff. Eff (canvas :: Canvas | eff) a
 
@@ -30,13 +30,21 @@ runProgram ctx = do
   _ <- liftEff $ runWebglWithShaders wgl ctx vertexShaderString fragmentShaderString
   return unit
 
-wgl :: WebGLProgram -> { a_Position :: Attribute Vec4 } -> { } -> WebGL Unit
+wgl :: WebGLProgram -> { a_Position :: Attribute Vec4 } -> { u_perspective :: Uniform Mat4 } -> WebGL Unit
 wgl _ attr unif =
   let
-    vertices = DataSource $ asFloat32Array [
-      0.0, 0.1,
-      -0.1, -0.1,
-      0.1, -0.1
+    --camera = defaultCamera
+    perspective = asFloat32Array
+      [ 9.0/16.0, 0.0, 0.0, 0.0
+      , 0.0, 1.0, 0.0, 0.0
+      , 0.0, 0.0, 1.0, 0.0
+      , 0.0, 0.0, 0.0, 1.0
+      ]
+    vertices = DataSource $ asFloat32Array
+      [ -0.1,  0.1
+      ,  0.1,  0.1
+      ,  0.1, -0.1
+      , -0.1, -0.1
       ]
   in
     do
@@ -47,6 +55,8 @@ wgl _ attr unif =
       vertexAttribPointer attr.a_Position 2 Float false 0 0
       enableVertexAttribArray attr.a_Position
 
+      uniformMatrix4fv unif.u_perspective perspective
+
       clearColor 0.0 0.0 0.0 1.0
       clear ColorBuffer
-      drawArrays Triangles 0 3
+      drawArrays TriangleFan 0 4
